@@ -64,6 +64,24 @@ variable "VPC_PRIVATE_SUBNETS" {
   default     = ["10.0.20.0/24", "10.0.21.0/24"]
 }
 
+variable "GITHUB_REPO" {
+  description = "The repo for simple ec2 deploy"
+  type        = string
+}
+
+variable "GITHUB_USER" {
+  description = "The github user"
+  type        = string
+}
+variable "GITHUB_TOKEN" {
+  description = "The github pat for simple deploy"
+  type        = string
+}
+
+variable "GITHUB_BRANCH" {
+  description = "The github branch for simple deploy"
+  type        = string
+}
 
 # Provider ]----------------------------------------------------------------
 # provider is aws using env vars for authentication
@@ -237,16 +255,12 @@ resource "aws_launch_configuration" "nginx_launch_configuration" {
   instance_type = var.INSTANCE_TYPE
   key_name      = var.KEY_NAME
   security_groups = [aws_security_group.asg_security_group.id]
-
-  user_data = <<-EOF
-                #!/bin/bash
-                yum update -y
-                yum install -y epel-release
-                yum install -y nginx
-                echo "<html><body><h1>Hello from Nginx</h1></body></html>" > /usr/share/nginx/html/index.html
-                systemctl start nginx
-                systemctl enable nginx
-              EOF
+  user_data = base64encode(templatefile("assets/user_data.sh", {
+        github_repo      = var.GITHUB_REPO
+        github_branch      = var.GITHUB_BRANCH
+        github_user  = var.GITHUB_USER
+        github_token  = var.GITHUB_TOKEN
+      } ))
 
   lifecycle {
     create_before_destroy = true
